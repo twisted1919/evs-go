@@ -15,7 +15,7 @@ $GOPATH/bin/evs-go -help
 ```
 While the server is running, you can connect to it using curl or any other programming language (see examples folder for PHP example) and start shoving emails at it and wait for results.
 
-### Example server/client
+### Example response server/client
 ```bash
 // server
 $ $GOPATH/bin/evs-go -verbose=true -vduration=true
