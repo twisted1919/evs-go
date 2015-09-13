@@ -1,7 +1,8 @@
 # evs-go
 An Email Validation Server written in GO language.  
 It's purpose is to check each email address if it is valid by checking the MX records and by doing an actual communication with the SMTP server(no email is actually sent).  
-The results are not interpreted in any way, is up to you to do it. If the email is valid (see known issues) you will get back a text starting with the OK wording, otherwise, you will get back the exact rejection reason, see examples for details.
+The results are not interpreted in any way, is up to you to do it. If the email is valid (see known issues) you will get back a text starting with the OK wording, otherwise, you will get back the exact rejection reason, see examples for details.  
+The MX query results, together with email validation results, will be cached in order to improve speed. 
 
 ### Install  
 ```
@@ -44,7 +45,7 @@ Worker # 1 done contact@onetwist.com in 5.469096688s
 * do not abuse this tool, it can be a very useful tool but also can work against you if not used properly  
 
 ### Known issues  
-Some providers, like Yahoo, might report false positives simply because they accept any emails you shive at them. Currently i don't have a workaround for this. feel free to suggest one.
+Some providers, like Yahoo, might report false positives simply because they accept any emails you shove at them. Currently i don't have a workaround for this. feel free to suggest one.
 
 
 Enjoy.
