@@ -315,7 +315,7 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		}
 		o.Add(email, res)
 		if config.Verbose {
-			fmt.Println("Worker #", wnum, "done", email, "in", tElapsed)
+			fmt.Println("Worker #", wnum, "verified", email, "in", tElapsed)
 		}
 	}
 }

@@ -2,7 +2,7 @@
 An Email Validation Server written in GO language.  
 It's purpose is to check each email address if it is valid by checking the MX records and by doing an actual communication with the SMTP server(no email is actually sent).  
 The results are not interpreted in any way, is up to you to do it. If the email is valid (see known issues) you will get back a text starting with the OK wording, otherwise, you will get back the exact rejection reason, see examples for details.  
-The MX query results, together with email validation results, will be cached in order to improve speed. 
+The MX query results, together with email validation results, will be cached in order to improve speed.
 
 ### Install  
 ```
@@ -20,9 +20,9 @@ While the server is running, you can connect to it using curl or any other progr
 ```bash
 // server
 $ $GOPATH/bin/evs-go -verbose=true -vduration=true
-Worker # 2 done idontexist@mailwizz.com in 2.157450155s
-Worker # 0 done contact@mailwizz.com in 2.212217376s
-Worker # 1 done contact@onetwist.com in 5.469096688s
+Worker # 2 verified idontexist@mailwizz.com in 2.157450155s
+Worker # 0 verified contact@mailwizz.com in 2.212217376s
+Worker # 1 verified contact@onetwist.com in 5.469096688s
 ```
 ```php
 // client
