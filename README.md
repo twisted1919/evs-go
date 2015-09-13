@@ -1,15 +1,15 @@
 # evs-go
 An Email Validation Server written in GO language
 
-# install  
+### install  
 ```
 go get github.com/twisted1919/evs-go
 ```
 
-# usage
+### usage
 ```
 $GOPATH/bin/evs-go -help  
 ```
 
-# notes  
+### notes  
 command line flags take priority over the ones from configuration file
