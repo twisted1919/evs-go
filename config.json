@@ -1,0 +1,17 @@
+{
+	"server.ip": "127.0.0.1",
+	"server.port": 8000,
+	"server.password": "",
+	"work.workers": 32,
+	"work.buffersize": 64,
+	"email.from": "noreply@domain.com",
+	"emails.cache.enabled": true,
+	"emails.cache.gcfrequency": 86400,
+	"emails.cache.maxsize": 10000,
+	"domains.mxcache.enabled": true,
+	"domains.mxcache.gcfrequency": 2592000,
+	"domains.mxcache.maxsize": 1000,
+	"domains.mxquery.timeout": 5,
+	"verbose": false,
+	"vduration": false
+}
