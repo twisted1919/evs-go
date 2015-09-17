@@ -12,6 +12,8 @@
 	"domains.mxcache.gcfrequency": 2592000,
 	"domains.mxcache.maxsize": 1000,
 	"domains.mxquery.timeout": 5,
+	"domains.whitelist": "",
+	"domains.blacklist": "",
 	"verbose": false,
 	"vduration": false
 }

@@ -33,8 +33,14 @@ type configuration struct {
 	DomainsMXCacheGCFrequency int    `json:"domains.mxcache.gcfrequency"`
 	DomainsMXCacheMaxSize     int    `json:"domains.mxcache.maxsize"`
 	DomainsMXQueryTimeout     int    `json:"domains.mxquery.timeout"`
+	DomainsWhitelist          string `json:"domains.whitelist"`
+	DomainsBlacklist          string `json:"domains.blacklist"`
 	Verbose                   bool   `json:"verbose"`
 	Vduration                 bool   `json:"vduration"`
+
+	// private
+	domWhitelist map[string]bool
+	domBlacklist map[string]bool
 }
 
 func newConfiguration() *configuration {
@@ -52,8 +58,14 @@ func newConfiguration() *configuration {
 		DomainsMXCacheGCFrequency: 2592000,
 		DomainsMXCacheMaxSize:     1000,
 		DomainsMXQueryTimeout:     5,
+		DomainsWhitelist:          "",
+		DomainsBlacklist:          "",
 		Verbose:                   false,
 		Vduration:                 false,
+
+		// private
+		domWhitelist: make(map[string]bool),
+		domBlacklist: make(map[string]bool),
 	}
 }
 
@@ -236,6 +248,14 @@ func validateEmail(email string) string {
 	}
 	domainName := strings.Split(email, "@")[1]
 
+	if _, ok := config.domBlacklist[domainName]; ok {
+		return veResVal(email, "email address is blacklisted")
+	}
+
+	if _, ok := config.domWhitelist[domainName]; ok {
+		return veResVal(email, "OK")
+	}
+
 	var mxRecords []*net.MX
 	fetchedFromCache := false
 	if config.DomainsMXCacheEnabled {
@@ -362,6 +382,7 @@ func httpHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var emails []string
 	tmp := make(map[string]bool)
 	for _, e := range iem {
+		e = strings.ToLower(e)
 		if _, ok := tmp[e]; ok {
 			continue
 		}
@@ -419,6 +440,8 @@ func main() {
 	domainsMXCacheGCFrequency := flag.Int("domains.mxcache.gcfrequency", defaultConfig.DomainsMXCacheGCFrequency, "garbage collector frequency for cached mx records")
 	domainsMXCacheMaxSize := flag.Int("domains.mxcache.maxsize", defaultConfig.DomainsMXCacheMaxSize, "max items to keep in the cache at any give time")
 	domainsMXQueryTimeout := flag.Int("domains.mxquery.timeout", defaultConfig.DomainsMXQueryTimeout, "timeout in seconds for MX queries")
+	domainsWhitelist := flag.String("domains.whitelist", defaultConfig.DomainsWhitelist, "domains whitelist, separated by a comma: a.com,b.com,c.com")
+	domainsBlacklist := flag.String("domains.blacklist", defaultConfig.DomainsBlacklist, "domains blacklist, separated by a comma: a.com,b.com,c.com")
 	verbose := flag.Bool("verbose", defaultConfig.Verbose, "whether to enable verbose mode")
 	vduration := flag.Bool("vduration", defaultConfig.Vduration, "whether to include validation duration for each email address")
 
@@ -439,8 +462,32 @@ func main() {
 		DomainsMXCacheGCFrequency: *domainsMXCacheGCFrequency,
 		DomainsMXCacheMaxSize:     *domainsMXCacheMaxSize,
 		DomainsMXQueryTimeout:     *domainsMXQueryTimeout,
-		Verbose:                   *verbose,
-		Vduration:                 *vduration,
+		DomainsWhitelist:          *domainsWhitelist,
+		DomainsBlacklist:          *domainsBlacklist,
+
+		Verbose:   *verbose,
+		Vduration: *vduration,
+
+		domWhitelist: make(map[string]bool),
+		domBlacklist: make(map[string]bool),
+	}
+
+	domainsWhitelistStr := *domainsWhitelist
+	if len(domainsWhitelistStr) > 0 {
+		split := strings.Split(domainsWhitelistStr, ",")
+		for _, dom := range split {
+			dom = strings.ToLower(strings.TrimSpace(dom))
+			config.domWhitelist[dom] = true
+		}
+	}
+
+	domainsBlacklistStr := *domainsBlacklist
+	if len(domainsBlacklistStr) > 0 {
+		split := strings.Split(domainsBlacklistStr, ",")
+		for _, dom := range split {
+			dom = strings.ToLower(strings.TrimSpace(dom))
+			config.domBlacklist[dom] = true
+		}
 	}
 
 	if config.DomainsMXCacheEnabled {
