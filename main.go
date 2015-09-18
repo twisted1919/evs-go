@@ -422,6 +422,11 @@ func httpHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	sendHTTPJSONResponse(w, "success", m, o.Emails)
 }
 
+func aliveHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	fmt.Fprint(w, "pong")
+	return
+}
+
 func main() {
 
 	defaultConfig := newConfiguration()
@@ -501,5 +506,6 @@ func main() {
 	address := fmt.Sprintf("%s:%d", config.IP, config.Port)
 	router := httprouter.New()
 	router.POST("/", setupHTTP(httpHandler))
+	router.GET("/ping", aliveHandler)
 	log.Fatal(http.ListenAndServe(address, router))
 }
