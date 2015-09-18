@@ -358,6 +358,9 @@ func sendHTTPJSONResponse(w http.ResponseWriter, status, message string, emails 
 }
 
 func httpHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if config.Verbose {
+		fmt.Println("Incoming request from:", r.RemoteAddr)
+	}
 	start := time.Now()
 
 	if len(config.Password) > 0 && r.Header.Get("Authorization") != config.Password {
@@ -423,6 +426,9 @@ func httpHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func aliveHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if config.Verbose {
+		fmt.Println("Incoming request from:", r.RemoteAddr)
+	}
 	if len(config.Password) > 0 && r.Header.Get("Authorization") != config.Password {
 		fmt.Fprint(w, "Invalid password")
 		return
