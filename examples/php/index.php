@@ -15,8 +15,7 @@ function sendEmails($emails = []) {
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 
     // if password is needed:
-    // $headers = array('Authorization' => '');
-    // curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Authorization: yourpassword'));
 
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($emails));
