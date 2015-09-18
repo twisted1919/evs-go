@@ -423,6 +423,10 @@ func httpHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func aliveHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if len(config.Password) > 0 && r.Header.Get("Authorization") != config.Password {
+		fmt.Fprint(w, "Invalid password")
+		return
+	}
 	fmt.Fprint(w, "pong")
 	return
 }
