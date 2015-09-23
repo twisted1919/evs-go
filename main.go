@@ -14,54 +14,64 @@ import (
 	"net/smtp"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
 
 type configuration struct {
-	IP                        string `json:"server.ip"`
-	Port                      int    `json:"server.port"`
-	Password                  string `json:"server.password"`
-	WorkersCount              int    `json:"work.workers"`
-	WorkBufferSize            int    `json:"work.buffersize"`
-	CheckEmailFrom            string `json:"email.from"`
-	EmailsCacheEnabled        bool   `json:"emails.cache.enabled"`
-	EmailsCacheGCFrequency    int    `json:"emails.cache.gcfrequency"`
-	EmailsCacheMaxSize        int    `json:"emails.cache.maxsize"`
-	DomainsMXCacheEnabled     bool   `json:"domains.mxcache.enabled"`
-	DomainsMXCacheGCFrequency int    `json:"domains.mxcache.gcfrequency"`
-	DomainsMXCacheMaxSize     int    `json:"domains.mxcache.maxsize"`
-	DomainsMXQueryTimeout     int    `json:"domains.mxquery.timeout"`
-	DomainsWhitelist          string `json:"domains.whitelist"`
-	DomainsBlacklist          string `json:"domains.blacklist"`
-	Verbose                   bool   `json:"verbose"`
-	Vduration                 bool   `json:"vduration"`
+	IP                              string   `json:"server.ip"`
+	Port                            int      `json:"server.port"`
+	Password                        string   `json:"server.password"`
+	WorkersCount                    int      `json:"work.workers"`
+	WorkBufferSize                  int      `json:"work.buffersize"`
+	CheckEmailFrom                  string   `json:"email.from"`
+	EmailsCacheEnabled              bool     `json:"emails.cache.enabled"`
+	EmailsCacheGCFrequency          int      `json:"emails.cache.gcfrequency"`
+	EmailsCacheMaxSize              int      `json:"emails.cache.maxsize"`
+	DomainsMXCacheEnabled           bool     `json:"domains.mxcache.enabled"`
+	DomainsMXCacheGCFrequency       int      `json:"domains.mxcache.gcfrequency"`
+	DomainsMXCacheMaxSize           int      `json:"domains.mxcache.maxsize"`
+	DomainsMXQueryTimeout           int      `json:"domains.mxquery.timeout"`
+	DomainsWhitelist                string   `json:"domains.whitelist"`
+	DomainsBlacklist                string   `json:"domains.blacklist"`
+	Verbose                         bool     `json:"verbose"`
+	Vduration                       bool     `json:"vduration"`
+	BlacklistedAtDomainsEnabled     bool     `json:"blacklisted.atdomains.enabled"`
+	BlacklistedAtDomainsGCFrequency int      `json:"blacklisted.atdomains.gcfrequency"`
+	BlacklistedAtDomainsMaxSize     int      `json:"blacklisted.atdomains.maxsize"`
+	BlacklistedAtDomainsRegexes     []string `json:"blacklisted.atdomains.regexes"`
 
 	// private
-	domWhitelist map[string]bool
-	domBlacklist map[string]bool
+	domWhitelist       map[string]bool
+	domBlacklist       map[string]bool
+	blAtDomainsRegexes []*regexp.Regexp
 }
 
 func newConfiguration() *configuration {
 	return &configuration{
-		IP:                        "127.0.0.1",
-		Port:                      8000,
-		Password:                  "",
-		WorkersCount:              32,
-		WorkBufferSize:            64,
-		CheckEmailFrom:            "noreply@domain.com",
-		EmailsCacheEnabled:        true,
-		EmailsCacheGCFrequency:    86400,
-		EmailsCacheMaxSize:        10000,
-		DomainsMXCacheEnabled:     true,
-		DomainsMXCacheGCFrequency: 2592000,
-		DomainsMXCacheMaxSize:     1000,
-		DomainsMXQueryTimeout:     5,
-		DomainsWhitelist:          "",
-		DomainsBlacklist:          "",
-		Verbose:                   false,
-		Vduration:                 false,
+		IP:                              "127.0.0.1",
+		Port:                            8000,
+		Password:                        "",
+		WorkersCount:                    32,
+		WorkBufferSize:                  64,
+		CheckEmailFrom:                  "noreply@domain.com",
+		EmailsCacheEnabled:              true,
+		EmailsCacheGCFrequency:          86400,
+		EmailsCacheMaxSize:              10000,
+		DomainsMXCacheEnabled:           true,
+		DomainsMXCacheGCFrequency:       2592000,
+		DomainsMXCacheMaxSize:           1000,
+		DomainsMXQueryTimeout:           5,
+		DomainsWhitelist:                "",
+		DomainsBlacklist:                "",
+		Verbose:                         false,
+		Vduration:                       false,
+		BlacklistedAtDomainsEnabled:     true,
+		BlacklistedAtDomainsGCFrequency: 2592000,
+		BlacklistedAtDomainsMaxSize:     10000,
+		BlacklistedAtDomainsRegexes:     []string{},
 
 		// private
 		domWhitelist: make(map[string]bool),
@@ -199,6 +209,78 @@ func newEmailsCache() *emailsCache {
 	return e
 }
 
+type blacklistedAtDomainsDataItem struct {
+	key, val string
+}
+
+type blacklistedAtDomainsDataItems []*blacklistedAtDomainsDataItem
+
+type blacklistedAtDomains struct {
+	sync.RWMutex
+	maxSize            int
+	gcFrequency        time.Duration
+	data               blacklistedAtDomainsDataItems
+	blAtDomainsRegexes []*regexp.Regexp
+}
+
+func (b *blacklistedAtDomains) add(k string, v string) {
+	b.Lock()
+	defer b.Unlock()
+	if len(b.data) >= b.maxSize {
+		b.data = b.data[1:]
+	}
+	b.data = append(b.data, &blacklistedAtDomainsDataItem{k, v})
+}
+
+func (b *blacklistedAtDomains) get(k string) (string, bool) {
+	b.Lock()
+	defer b.Unlock()
+	for _, s := range b.data {
+		if s.key == k {
+			return s.val, true
+		}
+	}
+	return "", false
+}
+
+func (b *blacklistedAtDomains) gcHandler() {
+	ticker := time.NewTicker(b.gcFrequency)
+	for _ = range ticker.C {
+		b.Lock()
+		b.data = b.data[:0]
+		b.Unlock()
+	}
+}
+
+func (b *blacklistedAtDomains) checkBlacklisted(email *string, response *string) bool {
+	domainName := strings.Split(*email, "@")[0]
+	if _, ok := b.get(domainName); ok {
+		return true
+	}
+	for _, rx := range b.blAtDomainsRegexes {
+		if rx.MatchString(*response) {
+			b.add(domainName, *response)
+			return true
+		}
+	}
+	return false
+}
+
+func newBlacklistedAtDomains() *blacklistedAtDomains {
+	b := &blacklistedAtDomains{
+		gcFrequency: time.Second * time.Duration(config.BlacklistedAtDomainsGCFrequency),
+		maxSize:     config.BlacklistedAtDomainsMaxSize,
+	}
+
+	if config.BlacklistedAtDomainsGCFrequency > 0 {
+		go b.gcHandler()
+	}
+
+	b.blAtDomainsRegexes = config.blAtDomainsRegexes
+
+	return b
+}
+
 type httpJSONResponse struct {
 	Status  string            `json:"status"`
 	Message string            `json:"message"`
@@ -224,9 +306,10 @@ func (o *outgoingEmails) Add(k, v string) {
 }
 
 var (
-	config   *configuration
-	dMXCache *domainsMXCache
-	eCache   *emailsCache
+	config      *configuration
+	dMXCache    *domainsMXCache
+	eCache      *emailsCache
+	blAtDomains *blacklistedAtDomains
 )
 
 func veResVal(email, message string) string {
@@ -330,10 +413,17 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		tStart := time.Now()
 		res := validateEmail(email)
 		tElapsed := time.Since(tStart)
+
 		if config.Vduration {
 			res += fmt.Sprintf(" [took %s]", tElapsed)
 		}
+
+		if config.BlacklistedAtDomainsEnabled {
+			blAtDomains.checkBlacklisted(&email, &res)
+		}
+
 		o.Add(email, res)
+
 		if config.Verbose {
 			fmt.Println("Worker #", wnum, "verified", email, "in", tElapsed)
 		}
@@ -459,32 +549,48 @@ func main() {
 	domainsBlacklist := flag.String("domains.blacklist", defaultConfig.DomainsBlacklist, "domains blacklist, separated by a comma: a.com,b.com,c.com")
 	verbose := flag.Bool("verbose", defaultConfig.Verbose, "whether to enable verbose mode")
 	vduration := flag.Bool("vduration", defaultConfig.Vduration, "whether to include validation duration for each email address")
+	blacklistedAtDomainsEnabled := flag.Bool("blacklisted.atdomains.enabled", defaultConfig.BlacklistedAtDomainsEnabled, "whether checking if blacklisted at remote domains is enabled")
+	blacklistedAtDomainsGCFrequency := flag.Int("blacklisted.atdomains.gcfrequency", defaultConfig.BlacklistedAtDomainsGCFrequency, "garbage collector frequency for domains where the ip has been blacklisted")
+	blacklistedAtDomainsMaxSize := flag.Int("blacklisted.atdomains.maxsize", defaultConfig.BlacklistedAtDomainsMaxSize, "max items to keep in the cache at any give time")
 
 	flag.Parse()
 	defaultConfig = nil
 
 	config = &configuration{
-		IP:                        *ip,
-		Port:                      *port,
-		Password:                  *password,
-		WorkersCount:              *workersCount,
-		WorkBufferSize:            *workBufferSize,
-		CheckEmailFrom:            *checkEmailFrom,
-		EmailsCacheEnabled:        *EmailsCacheEnabled,
-		EmailsCacheGCFrequency:    *EmailsCacheGCFrequency,
-		EmailsCacheMaxSize:        *EmailsCacheMaxSize,
-		DomainsMXCacheEnabled:     *domainsMXCacheEnabled,
-		DomainsMXCacheGCFrequency: *domainsMXCacheGCFrequency,
-		DomainsMXCacheMaxSize:     *domainsMXCacheMaxSize,
-		DomainsMXQueryTimeout:     *domainsMXQueryTimeout,
-		DomainsWhitelist:          *domainsWhitelist,
-		DomainsBlacklist:          *domainsBlacklist,
+		IP:                              *ip,
+		Port:                            *port,
+		Password:                        *password,
+		WorkersCount:                    *workersCount,
+		WorkBufferSize:                  *workBufferSize,
+		CheckEmailFrom:                  *checkEmailFrom,
+		EmailsCacheEnabled:              *EmailsCacheEnabled,
+		EmailsCacheGCFrequency:          *EmailsCacheGCFrequency,
+		EmailsCacheMaxSize:              *EmailsCacheMaxSize,
+		DomainsMXCacheEnabled:           *domainsMXCacheEnabled,
+		DomainsMXCacheGCFrequency:       *domainsMXCacheGCFrequency,
+		DomainsMXCacheMaxSize:           *domainsMXCacheMaxSize,
+		DomainsMXQueryTimeout:           *domainsMXQueryTimeout,
+		DomainsWhitelist:                *domainsWhitelist,
+		DomainsBlacklist:                *domainsBlacklist,
+		Verbose:                         *verbose,
+		Vduration:                       *vduration,
+		BlacklistedAtDomainsEnabled:     *blacklistedAtDomainsEnabled,
+		BlacklistedAtDomainsGCFrequency: *blacklistedAtDomainsGCFrequency,
+		BlacklistedAtDomainsMaxSize:     *blacklistedAtDomainsMaxSize,
 
-		Verbose:   *verbose,
-		Vduration: *vduration,
-
+		// private
 		domWhitelist: make(map[string]bool),
 		domBlacklist: make(map[string]bool),
+	}
+
+	// compile the regexes only once
+	if len(config.blAtDomainsRegexes) == 0 {
+		for _, rxExpr := range config.BlacklistedAtDomainsRegexes {
+			r, err := regexp.Compile(rxExpr)
+			if err != nil {
+				config.blAtDomainsRegexes = append(config.blAtDomainsRegexes, r)
+			}
+		}
 	}
 
 	domainsWhitelistStr := *domainsWhitelist
@@ -511,6 +617,10 @@ func main() {
 
 	if config.EmailsCacheEnabled {
 		eCache = newEmailsCache()
+	}
+
+	if config.BlacklistedAtDomainsEnabled {
+		blAtDomains = newBlacklistedAtDomains()
 	}
 
 	address := fmt.Sprintf("%s:%d", config.IP, config.Port)
