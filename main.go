@@ -322,10 +322,11 @@ func veResVal(email, message string) string {
 	if config.EmailsCacheEnabled {
 		eCache.add(email, message)
 	}
+	// this is this server problem, end client shouldn't care!
 	if config.BlacklistedAtDomainsEnabled && message != "OK" {
 		if isBL := blAtDomains.checkBlacklisted(&email, &message); isBL {
 			if config.Verbose {
-				fmt.Println("Domain of", email, "blacklisted this ip with:", message)
+				fmt.Println("Domain of", strings.Split(email, "@")[1], "blacklisted this IP:", message)
 			}
 			message = "OK"
 		}
@@ -431,7 +432,7 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		tStart := time.Now()
 		res := validateEmail(email)
 		tElapsed := time.Since(tStart)
-		stdOut := fmt.Sprint("Worker # ", wnum, " verified ", email, " in ", tElapsed)
+		stdOut := fmt.Sprint("Worker #", wnum, " verified ", email, " in ", tElapsed)
 
 		if config.Vduration {
 			res += fmt.Sprintf(" [took %s]", tElapsed)
