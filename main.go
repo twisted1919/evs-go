@@ -414,17 +414,14 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		res := validateEmail(email)
 		tElapsed := time.Since(tStart)
 
-		if config.Vduration {
-			res += fmt.Sprintf(" [took %s]", tElapsed)
+		if config.BlacklistedAtDomainsEnabled {
+			if isBl := blAtDomains.checkBlacklisted(&email, &res); isBl {
+				res = "OK"
+			}
 		}
 
-		if config.BlacklistedAtDomainsEnabled {
-			isBl := blAtDomains.checkBlacklisted(&email, &res)
-			if config.Vduration && isBl {
-				domainName := strings.Split("@", email)[1]
-				message, _ := blAtDomains.get(domainName)
-				res += fmt.Sprintf(" [%s blacklisted this ip: %s]", domainName, message)
-			}
+		if config.Vduration {
+			res += fmt.Sprintf(" [took %s]", tElapsed)
 		}
 
 		o.Add(email, res)
