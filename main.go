@@ -413,10 +413,17 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		tStart := time.Now()
 		res := validateEmail(email)
 		tElapsed := time.Since(tStart)
+		stdOut := fmt.Sprint("Worker #", wnum, "verified", email, "in", tElapsed)
 
 		if config.BlacklistedAtDomainsEnabled {
-			if isBl := blAtDomains.checkBlacklisted(&email, &res); isBl {
+			isBl := blAtDomains.checkBlacklisted(&email, &res)
+			if isBl {
 				res = "OK"
+				if config.Verbose {
+					domainName := strings.Split(email, "@")[1]
+					blMessage, _ := blAtDomains.get(domainName)
+					stdOut += fmt.Sprint(" - Ip blacklisted at server: ", blMessage)
+				}
 			}
 		}
 
@@ -427,7 +434,7 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		o.Add(email, res)
 
 		if config.Verbose {
-			fmt.Println("Worker #", wnum, "verified", email, "in", tElapsed)
+			fmt.Println(stdOut)
 		}
 	}
 }
