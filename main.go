@@ -605,7 +605,7 @@ func main() {
 	if len(config.blAtDomainsRegexes) == 0 {
 		for _, rxExpr := range config.BlacklistedAtDomainsRegexes {
 			r, err := regexp.Compile(rxExpr)
-			if err != nil {
+			if err == nil {
 				config.blAtDomainsRegexes = append(config.blAtDomainsRegexes, r)
 			}
 		}
