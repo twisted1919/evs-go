@@ -117,6 +117,9 @@ type domainsMXCache struct {
 }
 
 func (d *domainsMXCache) add(k string, v []*net.MX) {
+	if _, ok := d.get(k); ok {
+		return
+	}
 	d.Lock()
 	defer d.Unlock()
 	if len(d.data) >= d.maxSize {
@@ -170,6 +173,9 @@ type emailsCache struct {
 }
 
 func (e *emailsCache) add(k string, v string) {
+	if _, ok := e.get(k); ok {
+		return
+	}
 	e.Lock()
 	defer e.Unlock()
 	if len(e.data) >= e.maxSize {
@@ -224,6 +230,9 @@ type blacklistedAtDomains struct {
 }
 
 func (b *blacklistedAtDomains) add(k string, v string) {
+	if _, ok := b.get(k); ok {
+		return
+	}
 	b.Lock()
 	defer b.Unlock()
 	if len(b.data) >= b.maxSize {
@@ -271,13 +280,10 @@ func newBlacklistedAtDomains() *blacklistedAtDomains {
 		gcFrequency: time.Second * time.Duration(config.BlacklistedAtDomainsGCFrequency),
 		maxSize:     config.BlacklistedAtDomainsMaxSize,
 	}
-
 	if config.BlacklistedAtDomainsGCFrequency > 0 {
 		go b.gcHandler()
 	}
-
 	b.blAtDomainsRegexes = config.blAtDomainsRegexes
-
 	return b
 }
 
@@ -316,13 +322,21 @@ func veResVal(email, message string) string {
 	if config.EmailsCacheEnabled {
 		eCache.add(email, message)
 	}
+	if config.BlacklistedAtDomainsEnabled && message != "OK" {
+		if isBL := blAtDomains.checkBlacklisted(&email, &message); isBL {
+			if config.Verbose {
+				fmt.Println("Domain of", email, "blacklisted this ip with:", message)
+			}
+			message = "OK"
+		}
+	}
 	return message
 }
 
 func validateEmail(email string) string {
 	if config.EmailsCacheEnabled {
 		if r, ok := eCache.get(email); ok {
-			return r
+			return veResVal(email, r)
 		}
 	}
 
@@ -336,6 +350,10 @@ func validateEmail(email string) string {
 	}
 
 	if _, ok := config.domWhitelist[domainName]; ok {
+		return veResVal(email, "OK")
+	}
+
+	if _, ok := blAtDomains.get(domainName); ok {
 		return veResVal(email, "OK")
 	}
 
@@ -414,18 +432,6 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		res := validateEmail(email)
 		tElapsed := time.Since(tStart)
 		stdOut := fmt.Sprint("Worker # ", wnum, " verified ", email, " in ", tElapsed)
-
-		if config.BlacklistedAtDomainsEnabled {
-			isBl := blAtDomains.checkBlacklisted(&email, &res)
-			if isBl {
-				res = "OK"
-				if config.Verbose {
-					domainName := strings.Split(email, "@")[1]
-					blMessage, _ := blAtDomains.get(domainName)
-					stdOut += fmt.Sprint(" - IP is blacklisted at server: ", blMessage)
-				}
-			}
-		}
 
 		if config.Vduration {
 			res += fmt.Sprintf(" [took %s]", tElapsed)
@@ -591,7 +597,8 @@ func main() {
 		domWhitelist: make(map[string]bool),
 		domBlacklist: make(map[string]bool),
 	}
-	// no need
+
+	// no need anymore
 	defaultConfig = nil
 
 	// compile the regexes only once

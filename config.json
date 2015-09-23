@@ -25,9 +25,9 @@
 		"(?i)part of their network is on our block",
 		"(?i)Service unavailable; Client host (.*) blocked using",
 		"(?i)Connections will not be accepted from (.*), because the ip is in (.*) list",
-		"(?i)_is_blocked.__For_information_see_",
+		"(?i)_is_blocked\.__For_information_see_",
 		"(?i)Mail from IP (.*) was rejected due to listing in",
-		"(?i)554 Denied [SHXBL] - Denied by Spamhaus XBL",
+		"(?i)554 Denied \[SHXBL\] - Denied by Spamhaus XBL",
 		"(?i)522 IP FOUND IN DNSRB",
 		"(?i)Message from (.*) temporarily deferred"
 	]
