@@ -413,7 +413,7 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		tStart := time.Now()
 		res := validateEmail(email)
 		tElapsed := time.Since(tStart)
-		stdOut := fmt.Sprint("Worker #", wnum, "verified", email, "in", tElapsed)
+		stdOut := fmt.Sprint("Worker # ", wnum, " verified ", email, " in ", tElapsed)
 
 		if config.BlacklistedAtDomainsEnabled {
 			isBl := blAtDomains.checkBlacklisted(&email, &res)
@@ -422,7 +422,7 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 				if config.Verbose {
 					domainName := strings.Split(email, "@")[1]
 					blMessage, _ := blAtDomains.get(domainName)
-					stdOut += fmt.Sprint(" - Ip blacklisted at server: ", blMessage)
+					stdOut += fmt.Sprint(" - IP is blacklisted at server: ", blMessage)
 				}
 			}
 		}
@@ -563,7 +563,6 @@ func main() {
 	blacklistedAtDomainsMaxSize := flag.Int("blacklisted.atdomains.maxsize", defaultConfig.BlacklistedAtDomainsMaxSize, "max items to keep in the cache at any give time")
 
 	flag.Parse()
-	defaultConfig = nil
 
 	config = &configuration{
 		IP:                              *ip,
@@ -586,11 +585,14 @@ func main() {
 		BlacklistedAtDomainsEnabled:     *blacklistedAtDomainsEnabled,
 		BlacklistedAtDomainsGCFrequency: *blacklistedAtDomainsGCFrequency,
 		BlacklistedAtDomainsMaxSize:     *blacklistedAtDomainsMaxSize,
+		BlacklistedAtDomainsRegexes:     defaultConfig.BlacklistedAtDomainsRegexes,
 
 		// private
 		domWhitelist: make(map[string]bool),
 		domBlacklist: make(map[string]bool),
 	}
+	// no need
+	defaultConfig = nil
 
 	// compile the regexes only once
 	if len(config.blAtDomainsRegexes) == 0 {
