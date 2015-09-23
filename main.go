@@ -253,7 +253,7 @@ func (b *blacklistedAtDomains) gcHandler() {
 }
 
 func (b *blacklistedAtDomains) checkBlacklisted(email *string, response *string) bool {
-	domainName := strings.Split(*email, "@")[0]
+	domainName := strings.Split(*email, "@")[1]
 	if _, ok := b.get(domainName); ok {
 		return true
 	}
@@ -419,7 +419,12 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		}
 
 		if config.BlacklistedAtDomainsEnabled {
-			blAtDomains.checkBlacklisted(&email, &res)
+			isBl := blAtDomains.checkBlacklisted(&email, &res)
+			if config.Vduration && isBl {
+				domainName := strings.Split("@", email)[1]
+				message, _ := blAtDomains.get(domainName)
+				res += fmt.Sprintf(" [%s blacklisted this ip: %s]", domainName, message)
+			}
 		}
 
 		o.Add(email, res)
