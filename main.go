@@ -327,6 +327,7 @@ var (
 )
 
 func veResVal(email, message string) string {
+	// based on the messages here we can build the rules
 	if config.Verbose {
 		fmt.Println("While validating", email, "we got:", message)
 	}
