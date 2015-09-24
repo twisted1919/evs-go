@@ -26,16 +26,19 @@
 		"(?i)Service unavailable; Client host (.*) blocked using",
 		"(?i)Connections will not be accepted from (.*), because the ip is in (.*) list",
 		"(?i)_is_blocked\\.__For_information_see_",
-		"(?i)Mail from IP (.*) was rejected due to listing in",
 		"(?i)554 Denied \\[SHXBL\\] - Denied by Spamhaus XBL",
 		"(?i)522 IP FOUND IN DNSRB",
 		"(?i)Message from (.*) temporarily deferred",
 		"(?i)Client host rejected: Ip banned",
 		"(?i)Reject due to policy restrictions",
 		"(?i)Your IP address is not allowed",
-		"(?i)550 Sorry! Your IP (.*)? is Blacklisted by (.*)",
 		"(?i)IP is DNSBL listed",
-		"(?i)550 (.*)? blocked by ldap"
+		"(?i)(.*)?(blocked|blacklisted|listed) (by|using)(.*)?",
+		"(?i)550 rejected (.*) is temporarily blocked",
+		"(?i)is listed on an RBL",
+		"(?i)was rejected due to listing",
+		"(?i)not accepted due to spam filter",
+		"(?i)JunkMail rejected"
 	],
 	"email.validation.response.regexes": [
 		"(?i)unknown email address",
@@ -55,12 +58,13 @@
 	    "(?i)Mailbox unavailable",
 	    "(?i)does not exist",
 	    "(?i)Invalid (recipient|mailbox|user|customer|email)",
-	    "(?i)(user|address|recipient)(.*)?(unknown|rejected)",
+	    "(?i)(user|address|recipient)(.*)?(unknown|rejected|inactive)",
 	    "(?i)No (account|email|user|mailbox) by that name here",
 	    "(?i)Address Recipient Unknown",
 	    "(?i)blocked due to inactivity",
 	    "(?i)Rejected by user",
 	    "(?i)unrouteable address",
-		"(?i)^550 Rejected"
+		"(?i)550 Rejected",
+		"(?i)550 5.1.1 <(.*)>: Recipient address rejected: (.*)"
 	]
 }
