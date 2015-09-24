@@ -32,5 +32,20 @@
 		"(?i)Message from (.*) temporarily deferred",
 		"(?i)Client host rejected: Ip banned",
 		"(?i)Reject due to policy restrictions"
+	],
+	"email.validation.response.regexes": [
+	    "(?i)unknown or illegal alias",
+	    "(?i)no such (host|user|customer|email)",
+	    "(?i)Not our (Customer|User)",
+	    "(?i)Mailbox unavailable",
+	    "(?i)does not exist",
+	    "(?i)Invalid (recipient|mailbox)",
+	    "(?i)user(.*)?unknown",
+	    "(?i)No account by that name here",
+	    "(?i)Address Recipient Unknown",
+	    "(?i)blocked due to inactivity",
+	    "(?i)unknown user account",
+	    "(?i)Rejected by user",
+	    "(?i)unrouteable address"
 	]
 }

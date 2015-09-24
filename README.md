@@ -1,8 +1,7 @@
 # evs-go
 An Email Validation Server written in GO language.  
 It's purpose is to check each email address if it is valid by checking the MX records and by doing an actual communication with the SMTP server(no email is actually sent).  
-The results are not interpreted in any way, is up to you to do it. If the email is valid (see known issues) you will get back a text starting with the OK wording, otherwise, you will get back the exact rejection reason, see examples for details.  
-The MX query results, together with email validation results, will be cached in order to improve speed.
+The results are interpreted based on a list of regular expressions. If the email is valid (see known issues) you will get back a text starting with the OK wording, otherwise, you will get back a message starting with NOT_OK: wording followed by the exact rejection reason, see examples for details.  
 
 ### Install  
 ```

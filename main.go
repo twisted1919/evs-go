@@ -20,6 +20,7 @@ import (
 	"time"
 )
 
+// main configuration strct
 type configuration struct {
 	IP                              string   `json:"server.ip"`
 	Port                            int      `json:"server.port"`
@@ -42,13 +43,16 @@ type configuration struct {
 	BlacklistedAtDomainsGCFrequency int      `json:"blacklisted.atdomains.gcfrequency"`
 	BlacklistedAtDomainsMaxSize     int      `json:"blacklisted.atdomains.maxsize"`
 	BlacklistedAtDomainsRegexes     []string `json:"blacklisted.atdomains.regexes"`
+	EmailValidationResponseRegexes  []string `json:"email.validation.response.regexes"`
 
 	// private
 	domWhitelist       map[string]bool
 	domBlacklist       map[string]bool
 	blAtDomainsRegexes []*regexp.Regexp
+	emValRespRegexes   []*regexp.Regexp
 }
 
+// create a new configuration with default values
 func newConfiguration() *configuration {
 	return &configuration{
 		IP:                              "127.0.0.1",
@@ -72,6 +76,7 @@ func newConfiguration() *configuration {
 		BlacklistedAtDomainsGCFrequency: 2592000,
 		BlacklistedAtDomainsMaxSize:     10000,
 		BlacklistedAtDomainsRegexes:     []string{},
+		EmailValidationResponseRegexes:  []string{},
 
 		// private
 		domWhitelist: make(map[string]bool),
@@ -102,6 +107,7 @@ func (c *configuration) loadFromJSONFile(configFile string) {
 	}
 }
 
+// domainsMX* family is used for cache handling for domain MX records
 type domainsMXCacheDataItem struct {
 	key string
 	val []*net.MX
@@ -159,6 +165,7 @@ func newDomainsMXCache() *domainsMXCache {
 	return d
 }
 
+// emailCache* family is used for cache handling for email addresses and their validation results
 type emailsCacheDataItem struct {
 	key, val string
 }
@@ -215,6 +222,7 @@ func newEmailsCache() *emailsCache {
 	return e
 }
 
+// blacklistedAtDomains* family is used for cache handling for domains that have blacklisted this ip address
 type blacklistedAtDomainsDataItem struct {
 	key, val string
 }
@@ -319,11 +327,13 @@ var (
 )
 
 func veResVal(email, message string) string {
+	// add here to avoid returning messages like NOT_OK:NOT_OK:NOT_OK...
 	if config.EmailsCacheEnabled {
 		eCache.add(email, message)
 	}
-	// this is this server problem, end client shouldn't care!
-	if config.BlacklistedAtDomainsEnabled && message != "OK" {
+
+	// this is this server problem...
+	if config.BlacklistedAtDomainsEnabled && !strings.HasPrefix(message, "OK") {
 		if isBL := blAtDomains.checkBlacklisted(&email, &message); isBL {
 			if config.Verbose {
 				fmt.Println("Domain of", strings.Split(email, "@")[1], "blacklisted this IP:", message)
@@ -331,10 +341,23 @@ func veResVal(email, message string) string {
 			message = "OK"
 		}
 	}
+
+	if strings.HasPrefix(message, "OK") {
+		return message
+	}
+
+	for _, r := range config.emValRespRegexes {
+		if r.MatchString(message) {
+			message = "NOT_OK: " + message
+			break
+		}
+	}
+
 	return message
 }
 
 func validateEmail(email string) string {
+	// check email if already in cache
 	if config.EmailsCacheEnabled {
 		if r, ok := eCache.get(email); ok {
 			return veResVal(email, r)
@@ -346,14 +369,18 @@ func validateEmail(email string) string {
 	}
 	domainName := strings.Split(email, "@")[1]
 
+	// if the domain is blacklisted, stop
 	if _, ok := config.domBlacklist[domainName]; ok {
 		return veResVal(email, "email address is blacklisted")
 	}
 
+	// also if whitelisted, means we trust it, so stop
 	if _, ok := config.domWhitelist[domainName]; ok {
 		return veResVal(email, "OK")
 	}
 
+	// if this ip is blacklisted at the email address domain, we stop
+	// however, this is our problem entirely, so we return OK
 	if _, ok := blAtDomains.get(domainName); ok {
 		return veResVal(email, "OK")
 	}
@@ -382,7 +409,7 @@ func validateEmail(email string) string {
 	}
 
 	if len(mxRecords) == 0 {
-		return "no mx record found"
+		return veResVal(email, "no mx record found")
 	}
 
 	for _, n := range mxRecords {
@@ -432,7 +459,6 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		tStart := time.Now()
 		res := validateEmail(email)
 		tElapsed := time.Since(tStart)
-		stdOut := fmt.Sprint("Worker #", wnum, " verified ", email, " in ", tElapsed)
 
 		if config.Vduration {
 			res += fmt.Sprintf(" [took %s]", tElapsed)
@@ -441,7 +467,7 @@ func worker(work <-chan string, o *outgoingEmails, wg *sync.WaitGroup, wnum int)
 		o.Add(email, res)
 
 		if config.Verbose {
-			fmt.Println(stdOut)
+			fmt.Println(fmt.Sprint("Worker #", wnum, " verified ", email, " in ", tElapsed))
 		}
 	}
 }
@@ -593,6 +619,7 @@ func main() {
 		BlacklistedAtDomainsGCFrequency: *blacklistedAtDomainsGCFrequency,
 		BlacklistedAtDomainsMaxSize:     *blacklistedAtDomainsMaxSize,
 		BlacklistedAtDomainsRegexes:     defaultConfig.BlacklistedAtDomainsRegexes,
+		EmailValidationResponseRegexes:  defaultConfig.EmailValidationResponseRegexes,
 
 		// private
 		domWhitelist: make(map[string]bool),
@@ -606,9 +633,22 @@ func main() {
 	if len(config.blAtDomainsRegexes) == 0 {
 		for _, rxExpr := range config.BlacklistedAtDomainsRegexes {
 			r, err := regexp.Compile(rxExpr)
-			if err == nil {
-				config.blAtDomainsRegexes = append(config.blAtDomainsRegexes, r)
+			if err != nil {
+				log.Fatal(err)
 			}
+			config.blAtDomainsRegexes = append(config.blAtDomainsRegexes, r)
+		}
+	}
+	if len(config.emValRespRegexes) == 0 {
+		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(?i)invalid email address")
+		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(?i)email address is blacklisted")
+		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(!?)no mx record found")
+		for _, rxExpr := range config.EmailValidationResponseRegexes {
+			r, err := regexp.Compile(rxExpr)
+			if err != nil {
+				log.Fatal(err)
+			}
+			config.emValRespRegexes = append(config.emValRespRegexes, r)
 		}
 	}
 
