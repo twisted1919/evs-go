@@ -327,6 +327,10 @@ var (
 )
 
 func veResVal(email, message string) string {
+	if config.Verbose {
+		fmt.Println("While validating", email, "we got:", message)
+	}
+
 	// add here to avoid returning messages like NOT_OK:NOT_OK:NOT_OK...
 	if config.EmailsCacheEnabled {
 		eCache.add(email, message)
@@ -348,12 +352,11 @@ func veResVal(email, message string) string {
 
 	for _, r := range config.emValRespRegexes {
 		if r.MatchString(message) {
-			message = "NOT_OK: " + message
-			break
+			return "NOT_OK: " + message
 		}
 	}
 
-	return message
+	return "OK"
 }
 
 func validateEmail(email string) string {
@@ -643,6 +646,7 @@ func main() {
 		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(?i)invalid email address")
 		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(?i)email address is blacklisted")
 		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(!?)no mx record found")
+		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(!?)lookup (.*) on (.*) no such host")
 		for _, rxExpr := range config.EmailValidationResponseRegexes {
 			r, err := regexp.Compile(rxExpr)
 			if err != nil {
