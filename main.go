@@ -165,7 +165,7 @@ func newDomainsMXCache() *domainsMXCache {
 	return d
 }
 
-// emailCache* family is used for cache handling for email addresses and their validation results
+// emailsCache* family is used for cache handling for email addresses and their validation results
 type emailsCacheDataItem struct {
 	key, val string
 }
@@ -332,7 +332,6 @@ func veResVal(email, message string) string {
 		fmt.Println("While validating", email, "we got:", message)
 	}
 
-	// add here to avoid returning messages like NOT_OK:NOT_OK:NOT_OK...
 	if config.EmailsCacheEnabled {
 		eCache.add(email, message)
 	}
