@@ -35,10 +35,11 @@
 		"(?i)IP is DNSBL listed",
 		"(?i)(.*)?(blocked|blacklisted|listed) (by|using)(.*)?",
 		"(?i)550 rejected (.*) is temporarily blocked",
-		"(?i)is listed on an RBL",
+		"(?i)is listed (in|on) (the|an) RBL",
 		"(?i)was rejected due to listing",
 		"(?i)not accepted due to spam filter",
-		"(?i)JunkMail rejected"
+		"(?i)JunkMail rejected",
+		"(?i)is not accepting mail from"
 	],
 	"email.validation.response.regexes": [
 		"(?i)unknown email address",
