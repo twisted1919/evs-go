@@ -353,7 +353,7 @@ func veResVal(email, message string) string {
 
 	for _, r := range config.emValRespRegexes {
 		if r.MatchString(message) {
-			return "NOT_OK: " + message
+			return message
 		}
 	}
 

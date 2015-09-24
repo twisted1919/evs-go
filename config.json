@@ -31,9 +31,15 @@
 		"(?i)522 IP FOUND IN DNSRB",
 		"(?i)Message from (.*) temporarily deferred",
 		"(?i)Client host rejected: Ip banned",
-		"(?i)Reject due to policy restrictions"
+		"(?i)Reject due to policy restrictions",
+		"(?i)Your IP address is not allowed",
+		"(?i)550 Sorry! Your IP (.*)? is Blacklisted by (.*)",
+		"(?i)IP is DNSBL listed",
+		"(?i)550 (.*)? blocked by ldap"
 	],
 	"email.validation.response.regexes": [
+		"(?i)unknown email address",
+		"(?i)not a valid (recipient|mailbox|user|customer|email)",
 		"(?i)unknown (user|mailbox|account)",
 		"(?i)mailbox temporarily disabled",
 		"(?i)not currently being accepted for this mailbox",
@@ -50,10 +56,11 @@
 	    "(?i)does not exist",
 	    "(?i)Invalid (recipient|mailbox|user|customer|email)",
 	    "(?i)(user|address|recipient)(.*)?(unknown|rejected)",
-	    "(?i)No account by that name here",
+	    "(?i)No (account|email|user|mailbox) by that name here",
 	    "(?i)Address Recipient Unknown",
 	    "(?i)blocked due to inactivity",
 	    "(?i)Rejected by user",
-	    "(?i)unrouteable address"
+	    "(?i)unrouteable address",
+		"(?i)^550 Rejected"
 	]
 }
