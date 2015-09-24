@@ -53,8 +53,7 @@
 		"(?i)Recipient not found",
 		"(?i)no (mailbox|account) by that name",
 		"(?i)esta bloqueada por inactividad",
-		"(?i)Recipient address rejected: User unknown in local (recipient|alias) table",
-		"(?i)550 <(.*)>: Recipient address rejected\\.",
+		"(?i)Recipient address rejected",
 	    "(?i)unknown or illegal alias",
 	    "(?i)no such (host|user|customer|email|mailbox)",
 	    "(?i)Not our (Customer|User)",
@@ -68,7 +67,6 @@
 	    "(?i)Rejected by user",
 	    "(?i)unrouteable address",
 		"(?i)550 Rejected",
-		"(?i)550 5.1.1 <(.*)>: Recipient address rejected: (.*)",
 		"(?i)Recipient Rejected: No account by that name here"
 	]
 }

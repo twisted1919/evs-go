@@ -336,26 +336,34 @@ func veResVal(email, message string) string {
 		eCache.add(email, message)
 	}
 
-	// this is this server problem...
-	if config.BlacklistedAtDomainsEnabled && !strings.HasPrefix(message, "OK") {
-		if isBL := blAtDomains.checkBlacklisted(&email, &message); isBL {
-			if config.Verbose {
-				fmt.Println("Domain of", strings.Split(email, "@")[1], "blacklisted this IP:", message)
-			}
-			message = "OK"
-		}
-	}
-
+	// if we got the ok, just stop
 	if strings.HasPrefix(message, "OK") {
 		return message
 	}
 
+	// if greylisted, we are still fine.
+	if strings.Contains(strings.ToLower(message), "greylist") {
+		return "OK"
+	}
+
+	// this is this server problem...
+	if config.BlacklistedAtDomainsEnabled {
+		if isBL := blAtDomains.checkBlacklisted(&email, &message); isBL {
+			if config.Verbose {
+				fmt.Println("Domain of", strings.Split(email, "@")[1], "blacklisted this IP:", message)
+			}
+			return "OK"
+		}
+	}
+
+	// finally match against provided regexes
 	for _, r := range config.emValRespRegexes {
 		if r.MatchString(message) {
 			return message
 		}
 	}
 
+	// if unknown message, just let it slide.
 	return "OK"
 }
 
