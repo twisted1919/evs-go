@@ -653,8 +653,8 @@ func main() {
 	if len(config.emValRespRegexes) == 0 {
 		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(?i)invalid email address")
 		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(?i)email address is blacklisted")
-		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(!?)no mx record found")
-		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(!?)lookup (.*) on (.*) no such host")
+		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(?i)no mx record found")
+		config.EmailValidationResponseRegexes = append(config.EmailValidationResponseRegexes, "(?i)lookup (.*) on (.*) no such host")
 		for _, rxExpr := range config.EmailValidationResponseRegexes {
 			r, err := regexp.Compile(rxExpr)
 			if err != nil {
