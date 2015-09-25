@@ -22,28 +22,29 @@ import (
 
 // main configuration strct
 type configuration struct {
-	IP                              string   `json:"server.ip"`
-	Port                            int      `json:"server.port"`
-	Password                        string   `json:"server.password"`
-	WorkersCount                    int      `json:"work.workers"`
-	WorkBufferSize                  int      `json:"work.buffersize"`
-	CheckEmailFrom                  string   `json:"email.from"`
-	EmailsCacheEnabled              bool     `json:"emails.cache.enabled"`
-	EmailsCacheGCFrequency          int      `json:"emails.cache.gcfrequency"`
-	EmailsCacheMaxSize              int      `json:"emails.cache.maxsize"`
-	DomainsMXCacheEnabled           bool     `json:"domains.mxcache.enabled"`
-	DomainsMXCacheGCFrequency       int      `json:"domains.mxcache.gcfrequency"`
-	DomainsMXCacheMaxSize           int      `json:"domains.mxcache.maxsize"`
-	DomainsMXQueryTimeout           int      `json:"domains.mxquery.timeout"`
-	DomainsWhitelist                string   `json:"domains.whitelist"`
-	DomainsBlacklist                string   `json:"domains.blacklist"`
-	Verbose                         bool     `json:"verbose"`
-	Vduration                       bool     `json:"vduration"`
-	BlacklistedAtDomainsEnabled     bool     `json:"blacklisted.atdomains.enabled"`
-	BlacklistedAtDomainsGCFrequency int      `json:"blacklisted.atdomains.gcfrequency"`
-	BlacklistedAtDomainsMaxSize     int      `json:"blacklisted.atdomains.maxsize"`
-	BlacklistedAtDomainsRegexes     []string `json:"blacklisted.atdomains.regexes"`
-	EmailValidationResponseRegexes  []string `json:"email.validation.response.regexes"`
+	IP                               string   `json:"server.ip"`
+	Port                             int      `json:"server.port"`
+	Password                         string   `json:"server.password"`
+	WorkersCount                     int      `json:"work.workers"`
+	WorkBufferSize                   int      `json:"work.buffersize"`
+	CheckEmailFrom                   string   `json:"email.from"`
+	EmailsCacheEnabled               bool     `json:"emails.cache.enabled"`
+	EmailsCacheGCFrequency           int      `json:"emails.cache.gcfrequency"`
+	EmailsCacheMaxSize               int      `json:"emails.cache.maxsize"`
+	DomainsMXCacheEnabled            bool     `json:"domains.mxcache.enabled"`
+	DomainsMXCacheGCFrequency        int      `json:"domains.mxcache.gcfrequency"`
+	DomainsMXCacheMaxSize            int      `json:"domains.mxcache.maxsize"`
+	DomainsMXQueryTimeout            int      `json:"domains.mxquery.timeout"`
+	DomainsWhitelist                 string   `json:"domains.whitelist"`
+	DomainsBlacklist                 string   `json:"domains.blacklist"`
+	Verbose                          bool     `json:"verbose"`
+	Vduration                        bool     `json:"vduration"`
+	BlacklistedAtDomainsEnabled      bool     `json:"blacklisted.atdomains.enabled"`
+	BlacklistedAtDomainsGCFrequency  int      `json:"blacklisted.atdomains.gcfrequency"`
+	BlacklistedAtDomainsMaxSize      int      `json:"blacklisted.atdomains.maxsize"`
+	BlacklistedAtDomainsRegexes      []string `json:"blacklisted.atdomains.regexes"`
+	EmailValidationResponseRegexes   []string `json:"email.validation.response.regexes"`
+	EmailValidationResponseOKStrings []string `json:"email.validation.response.ok.strings"`
 
 	// private
 	domWhitelist       map[string]bool
@@ -55,28 +56,29 @@ type configuration struct {
 // create a new configuration with default values
 func newConfiguration() *configuration {
 	return &configuration{
-		IP:                              "127.0.0.1",
-		Port:                            8000,
-		Password:                        "",
-		WorkersCount:                    32,
-		WorkBufferSize:                  64,
-		CheckEmailFrom:                  "noreply@domain.com",
-		EmailsCacheEnabled:              true,
-		EmailsCacheGCFrequency:          86400,
-		EmailsCacheMaxSize:              10000,
-		DomainsMXCacheEnabled:           true,
-		DomainsMXCacheGCFrequency:       2592000,
-		DomainsMXCacheMaxSize:           1000,
-		DomainsMXQueryTimeout:           5,
-		DomainsWhitelist:                "",
-		DomainsBlacklist:                "",
-		Verbose:                         false,
-		Vduration:                       false,
-		BlacklistedAtDomainsEnabled:     true,
-		BlacklistedAtDomainsGCFrequency: 2592000,
-		BlacklistedAtDomainsMaxSize:     10000,
-		BlacklistedAtDomainsRegexes:     []string{},
-		EmailValidationResponseRegexes:  []string{},
+		IP:                               "127.0.0.1",
+		Port:                             8000,
+		Password:                         "",
+		WorkersCount:                     32,
+		WorkBufferSize:                   64,
+		CheckEmailFrom:                   "noreply@domain.com",
+		EmailsCacheEnabled:               true,
+		EmailsCacheGCFrequency:           86400,
+		EmailsCacheMaxSize:               10000,
+		DomainsMXCacheEnabled:            true,
+		DomainsMXCacheGCFrequency:        2592000,
+		DomainsMXCacheMaxSize:            1000,
+		DomainsMXQueryTimeout:            5,
+		DomainsWhitelist:                 "",
+		DomainsBlacklist:                 "",
+		Verbose:                          false,
+		Vduration:                        false,
+		BlacklistedAtDomainsEnabled:      true,
+		BlacklistedAtDomainsGCFrequency:  2592000,
+		BlacklistedAtDomainsMaxSize:      10000,
+		BlacklistedAtDomainsRegexes:      []string{},
+		EmailValidationResponseRegexes:   []string{},
+		EmailValidationResponseOKStrings: []string{},
 
 		// private
 		domWhitelist: make(map[string]bool),
@@ -320,10 +322,11 @@ func (o *outgoingEmails) Add(k, v string) {
 }
 
 var (
-	config      *configuration
-	dMXCache    *domainsMXCache
-	eCache      *emailsCache
-	blAtDomains *blacklistedAtDomains
+	config           *configuration
+	dMXCache         *domainsMXCache
+	eCache           *emailsCache
+	blAtDomains      *blacklistedAtDomains
+	veResValPassOkKw []string
 )
 
 func veResVal(email, message string) string {
@@ -341,9 +344,12 @@ func veResVal(email, message string) string {
 		return message
 	}
 
-	// if greylisted, we are still fine.
-	if strings.Contains(strings.ToLower(message), "greylist") {
-		return "OK"
+	// look for "OK strings" and if found, return the OK
+	lMessage := strings.ToLower(message)
+	for _, s := range config.EmailValidationResponseOKStrings {
+		if strings.Contains(lMessage, s) {
+			return "OK"
+		}
 	}
 
 	// this is this server problem...
@@ -609,28 +615,29 @@ func main() {
 	flag.Parse()
 
 	config = &configuration{
-		IP:                              *ip,
-		Port:                            *port,
-		Password:                        *password,
-		WorkersCount:                    *workersCount,
-		WorkBufferSize:                  *workBufferSize,
-		CheckEmailFrom:                  *checkEmailFrom,
-		EmailsCacheEnabled:              *EmailsCacheEnabled,
-		EmailsCacheGCFrequency:          *EmailsCacheGCFrequency,
-		EmailsCacheMaxSize:              *EmailsCacheMaxSize,
-		DomainsMXCacheEnabled:           *domainsMXCacheEnabled,
-		DomainsMXCacheGCFrequency:       *domainsMXCacheGCFrequency,
-		DomainsMXCacheMaxSize:           *domainsMXCacheMaxSize,
-		DomainsMXQueryTimeout:           *domainsMXQueryTimeout,
-		DomainsWhitelist:                *domainsWhitelist,
-		DomainsBlacklist:                *domainsBlacklist,
-		Verbose:                         *verbose,
-		Vduration:                       *vduration,
-		BlacklistedAtDomainsEnabled:     *blacklistedAtDomainsEnabled,
-		BlacklistedAtDomainsGCFrequency: *blacklistedAtDomainsGCFrequency,
-		BlacklistedAtDomainsMaxSize:     *blacklistedAtDomainsMaxSize,
-		BlacklistedAtDomainsRegexes:     defaultConfig.BlacklistedAtDomainsRegexes,
-		EmailValidationResponseRegexes:  defaultConfig.EmailValidationResponseRegexes,
+		IP:                               *ip,
+		Port:                             *port,
+		Password:                         *password,
+		WorkersCount:                     *workersCount,
+		WorkBufferSize:                   *workBufferSize,
+		CheckEmailFrom:                   *checkEmailFrom,
+		EmailsCacheEnabled:               *EmailsCacheEnabled,
+		EmailsCacheGCFrequency:           *EmailsCacheGCFrequency,
+		EmailsCacheMaxSize:               *EmailsCacheMaxSize,
+		DomainsMXCacheEnabled:            *domainsMXCacheEnabled,
+		DomainsMXCacheGCFrequency:        *domainsMXCacheGCFrequency,
+		DomainsMXCacheMaxSize:            *domainsMXCacheMaxSize,
+		DomainsMXQueryTimeout:            *domainsMXQueryTimeout,
+		DomainsWhitelist:                 *domainsWhitelist,
+		DomainsBlacklist:                 *domainsBlacklist,
+		Verbose:                          *verbose,
+		Vduration:                        *vduration,
+		BlacklistedAtDomainsEnabled:      *blacklistedAtDomainsEnabled,
+		BlacklistedAtDomainsGCFrequency:  *blacklistedAtDomainsGCFrequency,
+		BlacklistedAtDomainsMaxSize:      *blacklistedAtDomainsMaxSize,
+		BlacklistedAtDomainsRegexes:      defaultConfig.BlacklistedAtDomainsRegexes,
+		EmailValidationResponseRegexes:   defaultConfig.EmailValidationResponseRegexes,
+		EmailValidationResponseOKStrings: defaultConfig.EmailValidationResponseOKStrings,
 
 		// private
 		domWhitelist: make(map[string]bool),
