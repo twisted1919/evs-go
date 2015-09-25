@@ -322,11 +322,10 @@ func (o *outgoingEmails) Add(k, v string) {
 }
 
 var (
-	config           *configuration
-	dMXCache         *domainsMXCache
-	eCache           *emailsCache
-	blAtDomains      *blacklistedAtDomains
-	veResValPassOkKw []string
+	config      *configuration
+	dMXCache    *domainsMXCache
+	eCache      *emailsCache
+	blAtDomains *blacklistedAtDomains
 )
 
 func veResVal(email, message string) string {
