@@ -5,10 +5,6 @@ The results are interpreted based on a list of regular expressions. If the email
 
 ### Install  
 ```
-go get github.com/twisted1919/evs-go
-```
-### Install  
-```
 # clone this repository locally (or download it) :  
 $ mkdir evs-go && cd evs-go && git clone https://github.com/twisted1919/evs-go.git .  
 
