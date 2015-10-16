@@ -7,18 +7,32 @@ The results are interpreted based on a list of regular expressions. If the email
 ```
 go get github.com/twisted1919/evs-go
 ```
+### Install  
+```
+# clone this repository locally (or download it) :  
+$ mkdir evs-go && cd evs-go && git clone https://github.com/twisted1919/evs-go.git .  
+
+# install go dependencies:  
+$ go get github.com/julienschmidt/httprouter  
+$ go get github.com/asaskevich/govalidator
+
+# build the binary:  
+$ go build -o evs-go  
+
+# if needed, edit config.json accordingly
+```
 
 ### Usage
 Start the server with proper flags, use -help to see available options:
 ```
-$GOPATH/bin/evs-go -help  
+./evs-go -help  
 ```
 While the server is running, you can connect to it using curl or any other programming language (see examples folder for PHP example) and start shoving emails at it and wait for results.
 
 ### Example response server/client
 ```bash
 // server
-$ $GOPATH/bin/evs-go -verbose=true -vduration=true
+$ ./evs-go -verbose=true -vduration=true
 Worker # 2 verified idontexist@mailwizz.com in 2.157450155s
 Worker # 0 verified contact@mailwizz.com in 2.212217376s
 Worker # 1 verified contact@onetwist.com in 5.469096688s
