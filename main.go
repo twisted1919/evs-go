@@ -441,8 +441,10 @@ func validateEmail(email string) string {
 			continue
 		}
 
-		defer c.Quit()
-		defer c.Close()
+		defer func() {
+			c.Quit()
+			c.Close()
+		}()
 
 		if err = c.Hello(domainName); err != nil {
 			return veResVal(email, err.Error())
