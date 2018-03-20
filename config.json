@@ -67,7 +67,9 @@
 		"(?i)Rejected by user",
 		"(?i)unrouteable address",
 		"(?i)550 Rejected",
-		"(?i)Recipient Rejected: No account by that name here"
+		"(?i)Recipient Rejected: No account by that name here",
+		"(?i)Relay access denied",
+		"(?i)No mailbox"
 	],
 	"email.validation.response.ok.strings": [
 		"greylist",
